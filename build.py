@@ -154,9 +154,9 @@ class Templates(object):
               th { font-size: 12px; padding: 0 0 12px; text-align: left;
                         border-bottom: 1px solid rgba(59,65,81,.2); }
               td { max-width: 20%; min-width: 6em; padding: 10px 0; vertical-align: top; }
-              .red { color: #f00; }
-              .blue { color: #55a; }
-              .grey { color: rgb(153, 153, 153); }
+              .red { color: #ff0000; }
+              .blue { color: #5555aa; }
+              .grey { color: #999999; }
             </style>
             ''')
 
