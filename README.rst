@@ -105,9 +105,9 @@ Shell
 Of course, it's also possible to run it from a shell::
 
     # download
-    SWAGGER_URL=http://domain.tld/swagger.v1.json build.py
+    SWAGGER_URL=http://domain.tld/swagger.v1.json SWAGGER_DST=swagger.v1.json python build.py
     # or build
-    SWAGGER_SRC='/.../swagger.v1.json' NODL=1 SWAGGER_DST=swag.html python build.py
+    SWAGGER_SRC=swagger.v1.json NODL=1 SWAGGER_DST=public/swagger.html python build.py
     # or both
     SWAGGER_URL=http://domain.tld/swagger.v1.json SWAGGER_DST=swag.html python build.py
 
@@ -125,7 +125,7 @@ Output:
 
 Environment Variables:
 
-- SWAGGER_SRC: JSON input file (default: public/swagger.v1.json | dev:swagger.html)
-- SWAGGER_DST: Static HTML file location (defaut: templates/swagger.tmpl | dev: swagger.v1.json)
-- /SWAGGER_URL/: URL to download JSON file from (default: https://try.gitea.io/swagger.v1.json; uses SWAGGER_SRC as destination)
-- /NODL/: When dev bit present, skip the download check when set
+- SWAGGER_SRC: JSON input file (default: swagger.html)
+- SWAGGER_DST: Static HTML file; Download destination location (default: swagger.v1.json)
+- SWAGGER_URL: URL to download JSON file from (default: https://try.gitea.io/swagger.v1.json)
+- NODL: Skip download check; or see above sed command (default: <unset>)

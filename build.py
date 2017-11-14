@@ -179,13 +179,13 @@ def main():
     write_static(page_data)
 
 
-def read_json(path='public/swagger.v1.json'):
+def read_json(path='swagger.v1.json'):
     '''Read JSON input from file.'''
     src = os.environ.get('SWAGGER_SRC', path)
     return json.load(open(src, 'r'))
 
 
-def write_static(page, destination='templates/swagger.tmpl'):
+def write_static(page, destination='swagger.html'):
     '''Generate a Swagger-like HTML page.
     Returns: True for write success | False for failure.'''
     dest = os.environ.get('SWAGGER_DST', destination)
@@ -328,7 +328,7 @@ def find_response(needle, haystack):
 
 def download_json(url='https://try.gitea.io/swagger.v1.json', output='swagger.v1.json'):
     '''Lazy way to make sure we have a copy of test data.'''
-    out = os.environ.get('SWAGGER_SRC', output)
+    out = os.environ.get('SWAGGER_DST', output)
     src = os.environ.get('SWAGGER_URL', url)
     if not os.path.exists(out):
         response = urllib2.urlopen(src)
@@ -341,9 +341,9 @@ if __name__ == '__main__':
     # REMOVE :: For development only.
     if not os.environ.get('NODL', ''):
         download_json()
+    # REMOVE :: For development only.
     if not os.environ.get('SWAGGER_DST', ''):
         os.environ['SWAGGER_DST'] = 'swagger.html'
     if not os.environ.get('SWAGGER_SRC', ''):
         os.environ['SWAGGER_SRC'] = 'swagger.v1.json'
-    # REMOVE :: For development only.
     main()
