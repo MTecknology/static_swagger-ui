@@ -49,7 +49,7 @@ class Templates(object):
             </div>
             ''')
 
-    path = textwrap.dedent('''\
+    api_route = textwrap.dedent('''\
             <div class="opblock-section opblock-{api_method}">
               <a id="section-{section_id}" href="#" onclick="toggle_opbody(this.id); return false;">
                 <div class="opblock-summary">
@@ -58,6 +58,19 @@ class Templates(object):
                 </div>
               </a>
               <div class="opblock-body" style="display: none;" id="opbod-section-{section_id}">
+                {subsections}
+              </div>
+            </div>
+            ''')
+
+    api_model = textwrap.dedent('''\
+            <div class="opblock-section opblock-model">
+              <a id="model-{section_id}" href="#" onclick="toggle_opbody(this.id); return false;">
+                <div class="opblock-summary">
+                  <span class="opblock-summary-path opblock-summary-model">{api_path}</span>
+                </div>
+              </a>
+              <div class="opblock-body" style="display: none;" id="opbod-model-{section_id}">
                 {subsections}
               </div>
             </div>
@@ -91,7 +104,7 @@ class Templates(object):
 
     resp_row = textwrap.dedent('''\
             <tr>
-              <td class="pcol-name">{code}</td>
+              <td class="pcol-name">{name}</td>
               <td class="pcol-desc">{desc}</td>
             </tr>
             ''')
@@ -141,7 +154,9 @@ class Templates(object):
               th { font-size: 12px; padding: 0 0 12px; text-align: left;
                         border-bottom: 1px solid rgba(59,65,81,.2); }
               td { max-width: 20%; min-width: 6em; padding: 10px 0; vertical-align: top; }
-              .red { color: #ff0000; }
+              .red { color: #f00; }
+              .blue { color: #55a; }
+              .grey { color: rgb(153, 153, 153); }
             </style>
             ''')
 
@@ -199,13 +214,14 @@ def write_static(page, destination='swagger.html'):
 
 def render_page(json_data):
     '''Assemble the entire page.'''
+    for attr in ['description', 'title', 'license', 'version']:
+        if attr not in json_data['info']:
+            print('JSON data is missing required data: info:{}'.format(attr))
+            return False
     info = json_data['info']
     baseurl = json_data['basePath']
-    for attr in ['description', 'title', 'license', 'version']:
-        if attr not in info:
-            raise 'JSON data is missing required data: {}.'.format(attr)
-
-    api_body = build_body(json_data)
+    api_routes = build_routes(json_data)
+    api_models = build_models(json_data)
 
     return Templates.page.format(**{
         'js': Templates.static_js,
@@ -214,21 +230,107 @@ def render_page(json_data):
         'version': info['version'],
         'baseurl': baseurl,
         'description': info['description'],
-        'api_body': api_body})
+        'api_body': api_routes + api_models})
 
 
-def build_body(json_data):
+def build_models(json_data):
+    '''Build the HTML for a list of models.'''
+    if not json_data.get('definitions', False):
+        print('JSON data is missing required data: definitions')
+        return False
+
+    api_d = ''
+    model_id = 0
+    for model in sorted(json_data['definitions'].keys()):
+        model_id += 1
+        table = build_model(json_data, model, model_id)
+        api_d += Templates.api_model.format(**{
+            'api_path': model,
+            'subsections': build_model(json_data, model, model_id),
+            'section_id': '{}'.format(model_id)})
+
+    return Templates.section.format(**{
+        'title': 'Models',
+        'api_d': api_d})
+
+
+def build_model(json_data, model, model_id=0, nest_count=0):
+    '''Build the HTML for a model.'''
+    if not model in json_data.get('definitions', []):
+        print('Requested key "{}" not found in JSON data.'.format(model))
+        return False
+    mod = json_data['definitions'][model]
+
+    rows = ''
+    mod_desc = mod.get('description', '')
+    if mod_desc:
+        rows = Templates.resp_row.format(**{
+            'name': '<span class="grey">description:</span>',
+            'desc': '<span class="grey">{}</span>'.format(mod_desc)})
+    for prop, attr in mod.get('properties', {}).iteritems():
+        if '$ref' in attr:
+            # For now, only support one level of nesting
+            ref = attr['$ref'].split('/')[-1]
+            if nest_count < 1:
+                description = Templates.api_model.format(**{
+                    'api_path': ref,
+                    'subsections': build_model(json_data, ref, model_id, nest_count + 1),
+                    'section_id': '{}-{}'.format(model_id, nest_count)})
+            else:
+                description = 'References Model: {}'.format(ref)
+        else:
+            fmt = ' (' + attr['format'] + ')' if attr.get('format', '') else ''
+            typ = attr.get('type', 'undefined')
+            nam = attr.get('x-go-name', 'undefined')
+            des = attr.get('description', '')
+            description = '{}<br />{}<br />{}'.format(
+                '<span class="blue">{}{}</span>'.format(typ, fmt),
+                '<span class="grey">x-go-name: {}</span>'.format(attr.get('x-go-name', '')),
+                des)
+
+        rows += Templates.resp_row.format(**{
+            'name': prop,
+            'desc': description})
+
+    return Templates.table.format(**{
+        'headers': '',
+        'table_rows': rows})
+
+
+def build_routes(json_data):
     '''Build the API docs portion of the page.'''
+    if not json_data.get('paths', ''):
+        print('JSON data is missing required data: paths')
+        return False
     paths = json_data['paths']
     topics = gen_topics(paths)
+
     sb = ''
     section_id = 0
     for k, v in sorted(topics.iteritems()):
         section_id += 1
-        api_d = build_section(json_data, v, section_id)
+        api_d = build_route(json_data, v, section_id)
         sb += Templates.section.format(**{
             'title': k,
             'api_d': api_d})
+    return sb
+
+def build_route(json_data, keys, section_id=0):
+    '''Build the HTML for a list (keys) of available API queries.'''
+    paths = json_data['paths']
+
+    sb = ''
+    key_id = 0
+    for key in sorted(keys):
+        key_id += 1
+        path, method = key.split('^^')
+        parameters = build_parameter_table(paths[path][method])
+        responses = build_responses_table(paths[path][method], json_data)
+        sb += Templates.api_route.format(**{
+            'api_path': path,
+            'api_method': method,
+            'subsections': str(parameters + responses),
+            'section_id': '{}-{}'.format(section_id, key_id)})
     return sb
 
 
@@ -246,24 +348,6 @@ def gen_topics(paths):
                 if t not in tags[tag]:
                     tags[tag].append(t)
     return tags
-
-
-def build_section(json_data, keys, section_id=0):
-    '''Build a HTML for a list (keys) of available API queries.'''
-    paths = json_data['paths']
-    sb = ''
-    key_id = 0
-    for key in sorted(keys):
-        key_id += 1
-        path, method = key.split('^^')
-        parameters = build_parameter_table(paths[path][method])
-        responses = build_responses_table(paths[path][method], json_data)
-        sb += Templates.path.format(**{
-            'api_path': path,
-            'api_method': method,
-            'subsections': str(parameters + responses),
-            'section_id': '{}-{}'.format(section_id, key_id)})
-    return sb
 
 
 def build_parameter_table(api):
@@ -304,7 +388,7 @@ def build_responses_table(api, json_data):
     for code, row in api['responses'].items():
         description = find_response(row['$ref'], json_data) if '$ref' in row else ''
         rows += Templates.resp_row.format(**{
-            'code': code,
+            'name': code,
             'desc': description})
 
     table = Templates.table.format(**{

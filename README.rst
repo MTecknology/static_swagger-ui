@@ -51,8 +51,8 @@ happy side effects.
 To add this to your package:
 
 - debian/control: Build-Depends: python
-- wget https://raw.githubusercontent.com/MTecknology/static_swagger-ui/master/build.py -O debian/helpers/swagger_build.py
-- sed -i '/REMOVE/,/REMOVE/d' debian/helpers/swagger_build.py
+- ``wget https://raw.githubusercontent.com/MTecknology/static_swagger-ui/master/build.py -O debian/helpers/swagger_build.py``
+- ``sed -i '/REMOVE/,/REMOVE/d' debian/helpers/swagger_build.py``
 - d/copyright: Add attribution
 - d/rules: override_dh_auto_build: [...]
 
