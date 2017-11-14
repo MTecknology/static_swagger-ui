@@ -329,10 +329,14 @@ def build_route(json_data, keys, section_id=0):
     for key in keys:
         key_id += 1
         path, method = key.split('^^')
+        desc = paths[path][method].get('summary', '')
         parameters = build_parameter_table(paths[path][method])
         responses = build_responses_table(paths[path][method], json_data)
+        route_path = path
+        if desc:
+            route_path += '</span><span class="route-desc">{}'.format(desc)
         sb += Templates.api_route.format(**{
-            'api_path': path,
+            'api_path': route_path,
             'api_method': method,
             'subsections': str(parameters + responses),
             'section_id': '{}-{}'.format(section_id, key_id)})
