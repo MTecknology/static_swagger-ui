@@ -309,11 +309,11 @@ def build_routes(json_data):
 
     sb = ''
     section_id = 0
-    for k, v in sorted(topics.iteritems()):
+    for tag, routes in sorted(topics.iteritems()):
         section_id += 1
-        api_d = build_route(json_data, v, section_id)
+        api_d = build_route(json_data, routes, section_id)
         sb += Templates.section.format(**{
-            'title': k,
+            'title': tag,
             'api_d': api_d})
     return sb
 
@@ -321,9 +321,12 @@ def build_route(json_data, keys, section_id=0):
     '''Build the HTML for a list (keys) of available API queries.'''
     paths = json_data['paths']
 
+    # Attempt to sort by group, then length, then path+method
+    keys.sort(key=lambda k: k[0:3] + str(len(k.split('^^')[0])) + k)
+
     sb = ''
     key_id = 0
-    for key in sorted(keys):
+    for key in keys:
         key_id += 1
         path, method = key.split('^^')
         parameters = build_parameter_table(paths[path][method])
