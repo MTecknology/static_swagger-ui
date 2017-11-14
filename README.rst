@@ -51,18 +51,20 @@ happy side effects.
 To add this to your package:
 
 - debian/control: Build-Depends: python
-- cp /.../build.py debian/helpers/swagger_build.py
+- wget https://raw.githubusercontent.com/MTecknology/static_swagger-ui/master/build.py -O debian/helpers/swagger_build.py
 - sed -i '/REMOVE/,/REMOVE/d' debian/helpers/swagger_build.py
-- d/copyright: Add paragraph
+- d/copyright: Add attribution
 - d/rules: override_dh_auto_build: [...]
 
 Example d/rules::
 
     override_dh_auto_build:
             python debian/helpers/swagger_build.py
+            # or..
+            SWAGGER_SRC='/.../swagger.v1.json' SWAGGER_DST=swag.html python debian/helpers/swagger_build.py
             go install -v -p 4 \
                     -buildmode=pie \
-                    -pkgdir="$(GOPATH)" \
+                    -pkgdir="$(GOPATH)" [...]
 
 d/copyright::
 
