@@ -260,22 +260,24 @@ def build_model(json_data, model, model_id=0, nest_count=0):
         print('Requested key "{}" not found in JSON data.'.format(model))
         return False
     mod = json_data['definitions'][model]
+    mod_desc = mod.get('description', '')
 
     rows = ''
-    mod_desc = mod.get('description', '')
     if mod_desc:
         rows = Templates.resp_row.format(**{
             'name': '<span class="grey">description:</span>',
             'desc': '<span class="grey">{}</span>'.format(mod_desc)})
+    nest_id = 0
     for prop, attr in mod.get('properties', {}).iteritems():
         if '$ref' in attr:
             # For now, only support one level of nesting
             ref = attr['$ref'].split('/')[-1]
+            nest_id += 1
             if nest_count < 1:
                 description = Templates.api_model.format(**{
                     'api_path': ref,
                     'subsections': build_model(json_data, ref, model_id, nest_count + 1),
-                    'section_id': '{}-{}'.format(model_id, nest_count)})
+                    'section_id': '{}-{}-{}'.format(model_id, nest_count, nest_id)})
             else:
                 description = 'References Model: {}'.format(ref)
         else:
