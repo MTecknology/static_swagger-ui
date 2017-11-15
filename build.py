@@ -52,6 +52,7 @@ class Templates(object):
                 <div class="opblock-summary">
                   <span class="opblock-summary-method summary-{api_method}">{api_method}</span>
                   <span class="opblock-summary-path">{api_path}</span>
+                  <span class="opblock-summary-description summary-model">{api_desc}</span>
                 </div>
               </a>
               <div class="opblock-body" style="display: none;" id="opbod-section-{section_id}">
@@ -64,7 +65,8 @@ class Templates(object):
             <div class="opblock-section opblock-model">
               <a id="model-{section_id}" href="#" onclick="toggle_opbody(this.id); return false;">
                 <div class="opblock-summary">
-                  <span class="opblock-summary-path opblock-summary-model">{api_path}</span>
+                  <span class="opblock-summary-title summary-model">{api_title}</span>
+                  <span class="opblock-summary-description summary-model">{api_desc}</span>
                 </div>
               </a>
               <div class="opblock-body" style="display: none;" id="opbod-model-{section_id}">
@@ -125,12 +127,14 @@ class Templates(object):
                         box-shadow: 0 0 3px rgba(0,0,0,.19); }
               .opblock-summary { display: flex; padding: 5px; align-items: center;
                         border-radius: 3px; text-shadow: 0 1px 0 rgba(0,0,0,.1); }
-              .opblock-summary-method { padding: 6px 15px; border-radius: 3px; text-align: center;
+              .opblock-summary-method { border-radius: 3px; text-align: center;
                         padding: 6px 15px; min-width: 80px; color: #ffffff; font-weight: 700; }
               .opblock-summary-path { font-size: 16px; display: flex; flex: 0 3 auto; word-break: break-all;
                         padding: 0 10px; font-family: monospace; font-weight: 600; }
-              .opblock-header { display: flex; align-items: center;  min-height: 50px;
+              .opblock-summary-description { font-size: 13px; }
+              .opblock-header { margin: 0 -20px; display: flex; align-items: center; min-height: 50px;
                         background: hsla(0,0%,100%,.8); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+              .opblock-header:first-child { margin-top: -20px; }
               .opblock-post { border-color: #49cc90; background: rgba(73,204,144,.1); }
               .opblock-delete { border-color: #f93e3e; background: rgba(249,62,62,.1); }
               .opblock-get { border-color: #61affe; background: rgba(97,175,254,.1); }
@@ -146,11 +150,18 @@ class Templates(object):
               .summary-delete { background: #f93e3e; }
               .summary-patch { background: #50e3c2; }
               .summary-put { background: #fca130; }
-              .opblock-table { padding: 20px 20px 10px; }
+              .opblock-body { padding: 20px; }
+              .opblock-table { padding: 20px 0; }
+              .opblock-table:last-child { padding-bottom: 0; }
+              #tag-section-Models > .opblock-model { background:rgba(0,0,0,.05); }
+              .opblock-model { border:1px solid rgba(59,65,81,.3); }
+              .opblock-summary-title { padding: 6px; font-weight: 700; }
+              .opblock-model .opblock-summary-description { padding: 0 10px 0 4px; }
+              .opblock-model .opblock-body { border-top:1px solid rgba(59,65,81,.3); }
               table { width: 100%; padding: 0 10px; border-collapse: collapse; }
               th { font-size: 12px; padding: 0 0 12px; text-align: left;
                         border-bottom: 1px solid rgba(59,65,81,.2); }
-              td { max-width: 20%; min-width: 6em; padding: 10px 0; vertical-align: top; }
+              td { width: 30%; padding: 10px 0; vertical-align: top; }
               .red { color: #ff0000; }
               .blue { color: #5555aa; }
               .grey { color: #999999; }
@@ -240,9 +251,13 @@ def build_models(json_data):
     model_id = 0
     for model in sorted(json_data['definitions'].keys()):
         model_id += 1
+        model_desc, subsections = build_model(json_data, model, model_id)
+        if model_desc.startswith(model):
+            model_desc = model_desc.replace(model, '', 1).strip().capitalize()
         api_d += Templates.api_model.format(**{
-            'api_path': model,
-            'subsections': build_model(json_data, model, model_id),
+            'api_title': model,
+            'api_desc': model_desc,
+            'subsections': subsections,
             'section_id': '{}'.format(model_id)})
 
     return Templates.section.format(**{
@@ -250,7 +265,7 @@ def build_models(json_data):
         'api_d': api_d})
 
 
-def build_model(json_data, model, model_id=0, nest_count=0):
+def build_model(json_data, model, model_id=0):
     '''Build the HTML for a model.'''
     if not model in json_data.get('definitions', []):
         print('Requested key "{}" not found in JSON data.'.format(model))
@@ -258,24 +273,13 @@ def build_model(json_data, model, model_id=0, nest_count=0):
     mod = json_data['definitions'][model]
     mod_desc = mod.get('description', '')
 
+    if 'properties' not in mod:
+        return mod_desc, '<table class="parameters"><tr><td>No properties</tr></td></table>'
+
     rows = ''
-    if mod_desc:
-        rows = Templates.resp_row.format(**{
-            'name': '<span class="grey">description:</span>',
-            'desc': '<span class="grey">{}</span>'.format(mod_desc)})
-    nest_id = 0
-    for prop, attr in mod.get('properties', {}).iteritems():
+    for prop, attr in mod['properties'].iteritems():
         if '$ref' in attr:
-            # For now, only support one level of nesting
-            ref = attr['$ref'].split('/')[-1]
-            nest_id += 1
-            if nest_count < 1:
-                description = Templates.api_model.format(**{
-                    'api_path': ref,
-                    'subsections': build_model(json_data, ref, model_id, nest_count + 1),
-                    'section_id': '{}-{}-{}'.format(model_id, nest_count, nest_id)})
-            else:
-                description = 'References Model: {}'.format(ref)
+            description = 'Model: {}'.format(attr['$ref'].split('/')[-1])
         else:
             fmt = ' (' + attr['format'] + ')' if attr.get('format', '') else ''
             description = '{}<br />{}<br />{}'.format(
@@ -287,7 +291,7 @@ def build_model(json_data, model, model_id=0, nest_count=0):
             'name': prop,
             'desc': description})
 
-    return Templates.table.format(**{
+    return mod_desc, Templates.table.format(**{
         'headers': '',
         'table_rows': rows})
 
@@ -325,11 +329,9 @@ def build_route(json_data, keys, section_id=0):
         desc = paths[path][method].get('summary', '')
         parameters = build_parameter_table(paths[path][method])
         responses = build_responses_table(paths[path][method], json_data)
-        route_path = path
-        if desc:
-            route_path += '</span><span class="route-desc">{}'.format(desc)
         sb += Templates.api_route.format(**{
-            'api_path': route_path,
+            'api_path': path,
+            'api_desc': desc,
             'api_method': method,
             'subsections': str(parameters + responses),
             'section_id': '{}-{}'.format(section_id, key_id)})
