@@ -30,9 +30,6 @@ class Templates(object):
                 <h1>{title}</h1>
                 <h2>[ Version: {version} | Base URL: {baseurl} ]</h2>
                 <h3>{description}</h3>
-                <p>Produced by a hacky script to avoid Swagger-UI dependencies.
-                <br />Ref: <a href="https://wiki.debian.org/Javascript/Nodejs/Tasks/swagger-ui">
-                https://wiki.debian.org/Javascript/Nodejs/Tasks/swagger-ui</a></p>
                 {api_body}
                 {js}
               </div>
