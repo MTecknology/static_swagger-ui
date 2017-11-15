@@ -14,7 +14,11 @@ import json
 import os
 import sys
 import textwrap
-import urllib2
+
+if sys.version_info.major >= 3:
+    from urllib.request import urlretrieve
+else:
+    from urllib import urlretrieve
 
 
 class Templates(object):
@@ -251,7 +255,7 @@ def build_models(json_data):
     model_id = 0
     for model in sorted(json_data['definitions'].keys()):
         model_id += 1
-        model_desc, subsections = build_model(json_data, model, model_id)
+        model_desc, subsections = build_model(json_data, model)
         if model_desc.startswith(model):
             model_desc = model_desc.replace(model, '', 1).strip().capitalize()
         api_d += Templates.api_model.format(**{
@@ -265,7 +269,7 @@ def build_models(json_data):
         'api_d': api_d})
 
 
-def build_model(json_data, model, model_id=0):
+def build_model(json_data, model):
     '''Build the HTML for a model.'''
     if not model in json_data.get('definitions', []):
         print('Requested key "{}" not found in JSON data.'.format(model))
@@ -277,7 +281,7 @@ def build_model(json_data, model, model_id=0):
         return mod_desc, '<table class="parameters"><tr><td>No properties</tr></td></table>'
 
     rows = ''
-    for prop, attr in mod['properties'].iteritems():
+    for prop, attr in sorted(mod['properties'].items()):
         if '$ref' in attr:
             description = 'Model: {}'.format(attr['$ref'].split('/')[-1])
         else:
@@ -306,7 +310,7 @@ def build_routes(json_data):
 
     sb = ''
     section_id = 0
-    for tag, routes in sorted(topics.iteritems()):
+    for tag, routes in sorted(topics.items()):
         section_id += 1
         api_d = build_route(json_data, routes, section_id)
         sb += Templates.section.format(**{
@@ -360,7 +364,7 @@ def build_parameter_table(api):
         return '<table class="parameters"><tr><td>No parameters</tr></td></table>'
 
     rows = ''
-    for row in api['parameters']:
+    for row in sorted(api['parameters'], key=lambda k: k['name']):
         description = row.get('description', '')
         required = ' <span class="red">*</span>' if row.get('required', False) else ''
         if 'type' in row:
@@ -389,7 +393,7 @@ def build_responses_table(api, json_data):
         return ''
 
     rows = ''
-    for code, row in api['responses'].items():
+    for code, row in sorted(api['responses'].items()):
         description = find_response(row['$ref'], json_data) if '$ref' in row else ''
         rows += Templates.resp_row.format(**{
             'name': code,
@@ -419,10 +423,7 @@ def download_json(url='https://try.gitea.io/swagger.v1.json', output='swagger.v1
     out = os.environ.get('SWAGGER_DST', output)
     src = os.environ.get('SWAGGER_URL', url)
     if not os.path.exists(out):
-        response = urllib2.urlopen(src)
-        json_data = response.read()
-        with open(out, 'w') as fh:
-            fh.write(json_data)
+        urlretrieve(src, out)
 
 
 if __name__ == '__main__':
