@@ -243,7 +243,6 @@ def build_models(json_data):
     model_id = 0
     for model in sorted(json_data['definitions'].keys()):
         model_id += 1
-        table = build_model(json_data, model, model_id)
         api_d += Templates.api_model.format(**{
             'api_path': model,
             'subsections': build_model(json_data, model, model_id),
@@ -282,13 +281,10 @@ def build_model(json_data, model, model_id=0, nest_count=0):
                 description = 'References Model: {}'.format(ref)
         else:
             fmt = ' (' + attr['format'] + ')' if attr.get('format', '') else ''
-            typ = attr.get('type', 'undefined')
-            nam = attr.get('x-go-name', 'undefined')
-            des = attr.get('description', '')
             description = '{}<br />{}<br />{}'.format(
-                '<span class="blue">{}{}</span>'.format(typ, fmt),
-                '<span class="grey">x-go-name: {}</span>'.format(attr.get('x-go-name', '')),
-                des)
+                '<span class="blue">{}{}</span>'.format(attr.get('type', 'undef'), fmt),
+                '<span class="grey">x-go-name: {}</span>'.format(attr.get('x-go-name', 'undef')),
+                attr.get('description', ''))
 
         rows += Templates.resp_row.format(**{
             'name': prop,
@@ -379,7 +375,7 @@ def build_parameter_table(api):
             'desc': description,
             'type': vartype})
 
-    table =  Templates.table.format(**{
+    table = Templates.table.format(**{
         'headers': '<th>Name</th><th>Type</th><th>Description</th>',
         'table_rows': rows})
 
