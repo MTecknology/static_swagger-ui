@@ -5,7 +5,7 @@ Reason:    Swagger-UI has over 750 JS libs that would require individual
            packaging, review, and maintenance.
            Ref: https://wiki.debian.org/Javascript/Nodejs/Tasks/swagger-ui
 Copyright: Michael Lustfield (MTecknology)
-License:   Expat with exclusions for MIT and Apache-2.0
+License:   Expat
 Upstream:  https://github.com/MTecknology/static_swagger-ui
 Env Vars:  SWAGGER_DST : Output destination, will overwrite existing files
            SWAGGER_SRC : Source JSON file
