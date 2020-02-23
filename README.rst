@@ -53,7 +53,6 @@ To add this to your package:
 - debian/control: Build-Depends: python
 - ``wget https://raw.githubusercontent.com/MTecknology/static_swagger-ui/master/build.py -O debian/helpers/swagger_build.py``
 - ``sed -i '/REMOVE/,/REMOVE/d' debian/helpers/swagger_build.py``
-- d/copyright: Add attribution
 - d/rules: override_dh_auto_build: [...]
 
 Example d/rules::
@@ -66,14 +65,8 @@ Example d/rules::
                     -buildmode=pie \
                     -pkgdir="$(GOPATH)" [...]
 
-d/copyright::
-
-    Files: debian/helpers/swagger_build.py
-    Copyright: 2017 Michael Lustfield
-    License: Expat
-
-If your project is Expat (or MIT) licensed, then adding "{current_year}
-Michael Lustfield" to the existing `debian/*` parapgraph is sufficient.
+Note: The license on this source is now Apache-2.0 which only requires
+attribution in source. (i.e. maintain the file header; that's it)
 
 Module
 ------
